@@ -3,17 +3,33 @@
 
 // PWM parameters
 #define PWM_PIN        15
-#define PWM_CHANNEL    LEDC_CHANNEL_0
+#define LED_PIN        2        // On-board LED
+#define PWM_CHANNEL_M  LEDC_CHANNEL_0
+#define PWM_CHANNEL_L  LEDC_CHANNEL_1
 #define PWM_TIMER      LEDC_TIMER_0
 #define PWM_MODE       LEDC_HIGH_SPEED_MODE
 #define PWM_FREQ       500     // 500 Hz
 #define PWM_RES        LEDC_TIMER_8_BIT
 
-int currentDuty = 30; // start at 30%
+void setDuty(int dutyPercent) {
+  if (dutyPercent < 0) dutyPercent = 0;
+  if (dutyPercent > 100) dutyPercent = 100;
+
+  uint32_t dutyValue = (255 * dutyPercent) / 100;
+
+  // Motor pin
+  ledc_set_duty(PWM_MODE, PWM_CHANNEL_M, dutyValue);
+  ledc_update_duty(PWM_MODE, PWM_CHANNEL_M);
+
+  // LED pin
+  ledc_set_duty(PWM_MODE, PWM_CHANNEL_L, dutyValue);
+  ledc_update_duty(PWM_MODE, PWM_CHANNEL_L);
+}
 
 void setup() {
   Serial.begin(9600);
 
+  // PWM timer configuration
   ledc_timer_config_t timerConf = {
     .speed_mode       = PWM_MODE,
     .duty_resolution  = PWM_RES,
@@ -23,25 +39,32 @@ void setup() {
   };
   ledc_timer_config(&timerConf);
 
-  ledc_channel_config_t channelConf = {
+  // PWM channel for motor
+  ledc_channel_config_t channelMotor = {
     .gpio_num       = PWM_PIN,
     .speed_mode     = PWM_MODE,
-    .channel        = PWM_CHANNEL,
+    .channel        = PWM_CHANNEL_M,
     .intr_type      = LEDC_INTR_DISABLE,
     .timer_sel      = PWM_TIMER,
     .duty           = 0,
     .hpoint         = 0
   };
-  ledc_channel_config(&channelConf);
-}
+  ledc_channel_config(&channelMotor);
 
-void setDuty(int dutyPercent) {
-  if (dutyPercent < 0) dutyPercent = 0;
-  if (dutyPercent > 100) dutyPercent = 100;
+  // PWM channel for onboard LED
+  ledc_channel_config_t channelLED = {
+    .gpio_num       = LED_PIN,
+    .speed_mode     = PWM_MODE,
+    .channel        = PWM_CHANNEL_L,
+    .intr_type      = LEDC_INTR_DISABLE,
+    .timer_sel      = PWM_TIMER,
+    .duty           = 0,
+    .hpoint         = 0
+  };
+  ledc_channel_config(&channelLED);
 
-  uint32_t dutyValue = (255 * dutyPercent) / 100;
-  ledc_set_duty(PWM_MODE, PWM_CHANNEL, dutyValue);
-  ledc_update_duty(PWM_MODE, PWM_CHANNEL);
+  // Start at 0 duty
+  setDuty(0);
 }
 
 void loop() {
