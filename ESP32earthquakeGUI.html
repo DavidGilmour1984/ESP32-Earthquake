@@ -2,244 +2,141 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>ESP32 Motor Control</title>
-
+<title>ESP32 Motor Frequency Control</title>
 <style>
-body{
-  font-family:Helvetica,Arial,sans-serif;
-  background:#eef2f8;
-  margin:0;
-  padding:20px;
-  text-align:center;
+body {
+  font-family: Helvetica, Arial, sans-serif;
+  background: #eef2f8;
+  margin: 0;
+  padding: 20px;
+  text-align: center;
 }
-.card{
-  background:#ffffff;
-  padding:30px;
-  width:480px;
-  margin:auto;
-  border-radius:18px;
-  box-shadow:0 5px 18px rgba(0,0,0,0.18);
+.card {
+  background: #ffffff;
+  padding: 30px;
+  width: 480px;
+  margin: auto;
+  border-radius: 18px;
+  box-shadow: 0 5px 18px rgba(0,0,0,0.18);
 }
-h2{
-  margin-top:0;
-  font-size:32px;
-  font-weight:600;
+h2 {
+  margin-top: 0;
+  font-size: 32px;
+  font-weight: 600;
 }
-.section-title{
-  font-size:24px;
-  margin-top:18px;
-  font-weight:600;
-  color:#1e3a8a;
-}
-button{
-  font-size:26px;
-  padding:14px 30px;
-  margin:12px;
-  border:none;
-  border-radius:12px;
-  background:#2563eb;
-  color:white;
-  cursor:pointer;
-}
-button:hover{
-  background:#1e40af;
-}
-.stop-btn{
-  background:#d90429;
-}
-.stop-btn:hover{
-  background:#a00320;
-}
-.slider{
-  width:100%;
-  height:35px;
-  margin-top:8px;
-}
-.valueBox{
-  font-size:28px;
-  margin-top:6px;
-  font-weight:600;
-}
-#currentDutyDisplay{
-  font-size:50px;
-  font-weight:700;
-  color:#2563eb;
-  margin:10px 0 20px 0;
-}
-
-/* Toggle switch styling */
-.switch {
-  position: relative;
-  display: inline-block;
-  width: 90px;
-  height: 45px;
-  margin-bottom: 20px;
-}
-.switch input {display:none;}
-.sliderToggle {
-  position: absolute;
+button {
+  font-size: 26px;
+  padding: 14px 30px;
+  margin: 12px;
+  border: none;
+  border-radius: 12px;
+  background: #2563eb;
+  color: white;
   cursor: pointer;
-  inset: 0;
-  background-color: #ccc;
-  transition: .4s;
-  border-radius: 45px;
 }
-.sliderToggle:before {
-  position: absolute;
-  content: "";
+button:hover { background: #1e40af; }
+.slider {
+  width: 100%;
   height: 35px;
-  width: 35px;
-  left: 5px;
-  bottom: 5px;
-  background-color: white;
-  transition: .4s;
-  border-radius: 50%;
+  margin-top: 8px;
 }
-input:checked + .sliderToggle {
-  background-color: #2563eb;
+.valueBox {
+  font-size: 28px;
+  margin-top: 6px;
+  font-weight: 600;
 }
-input:checked + .sliderToggle:before {
-  transform: translateX(45px);
+#freqDisplay {
+  font-size: 48px;
+  font-weight: 700;
+  color: #2563eb;
+  margin: 10px 0 10px 0;
 }
-.mode-label{
-  font-size:20px;
-  font-weight:600;
-  margin-top:6px;
-  color:#1e3a8a;
+#measuredDisplay {
+  font-size: 26px;
+  color: #1e3a8a;
+  margin-top: 5px;
 }
-.hidden { display:none; }
 </style>
 </head>
 
 <body>
-
 <div class="card">
+  <h2>ESP32 Motor Frequency Control</h2>
+  <button id="connectBtn">Connect</button>
 
-<h2>ESP32 Motor Controller</h2>
-<button id="connectBtn">Connect</button>
+  <div id="freqDisplay">Target: 0.00 Hz</div>
+  <div id="measuredDisplay">Measured: 0.00 Hz</div>
 
-<div id="currentDutyDisplay">0%</div>
+  <input type="range" id="freqSlider" class="slider" min="0" max="2" step="0.01" value="0">
+  <div class="valueBox"><span id="freqVal">0.00</span> Hz</div>
 
-<label class="mode-label">Mode:</label><br>
-<label class="switch">
-  <input type="checkbox" id="modeToggle">
-  <span class="sliderToggle"></span>
-</label>
-<div class="mode-label" id="modeName">Manual</div>
-
-<!-- MANUAL MODE UI -->
-<div id="manualControls">
-  <div class="section-title">Manual Control</div>
-  <input type="range" id="manualSlider" class="slider" min="0" max="100" value="0">
-  <div class="valueBox"><span id="manualVal">0</span>%</div>
-</div>
-
-<!-- AUTO/RAMP MODE UI -->
-<div id="autoControls" class="hidden">
-  <div class="section-title">Automatic Ramp</div>
-
-  <label>Max Speed</label>
-  <input type="range" id="maxSlider" class="slider" min="0" max="100" value="100">
-  <div class="valueBox"><span id="maxVal">100</span>%</div>
-
-  <label>Ramp Rate (% / step)</label>
-  <input type="range" id="stepSlider" class="slider" min="1" max="10" value="1">
-  <div class="valueBox"><span id="stepVal">1</span>%</div>
-
-  <button id="startRamp">Start Ramp</button>
-  <button id="stopRamp" class="stop-btn">Stop</button>
-</div>
-
+  <button id="stopBtn" style="background:#d90429;">Stop</button>
 </div>
 
 <script>
-let port, writer;
-let duty = 0;
-let rampInterval = null;
-let mode = "manual"; // manual or auto
+let port, writer, reader;
+let targetFreq = 0;
+let readLoopActive = false;
 
-async function sendDuty(v){
-  if(!writer) return;
-  v = Math.max(0, Math.min(100, v));
-  await writer.write(new TextEncoder().encode(v + "\n"));
+async function sendFreq(f) {
+  if (!writer) return;
+  await writer.write(new TextEncoder().encode(f.toFixed(2) + "\n"));
 }
 
-/* Connect button */
-document.getElementById("connectBtn").onclick = async()=>{
+document.getElementById("connectBtn").onclick = async () => {
   port = await navigator.serial.requestPort();
-  await port.open({ baudRate:9600 });
+  await port.open({ baudRate: 9600 });
   writer = port.writable.getWriter();
+  reader = port.readable.getReader();
+  startReadLoop();
 };
 
-/* Toggle between modes */
-const modeToggle = document.getElementById("modeToggle");
-const manualControls = document.getElementById("manualControls");
-const autoControls = document.getElementById("autoControls");
-const modeName = document.getElementById("modeName");
+const slider = document.getElementById("freqSlider");
+const valBox = document.getElementById("freqVal");
+const freqDisplay = document.getElementById("freqDisplay");
+const measuredDisplay = document.getElementById("measuredDisplay");
 
-modeToggle.oninput = ()=>{
-  if(modeToggle.checked){
-    mode = "auto";
-    modeName.textContent = "Auto Ramp";
-    manualControls.classList.add("hidden");
-    autoControls.classList.remove("hidden");
-    duty = 0;
-  } else {
-    mode = "manual";
-    modeName.textContent = "Manual";
-    autoControls.classList.add("hidden");
-    manualControls.classList.remove("hidden");
-    duty = 0;
-    clearInterval(rampInterval);
-  }
+slider.oninput = () => {
+  targetFreq = parseFloat(slider.value);
+  valBox.textContent = targetFreq.toFixed(2);
 };
 
-/* Manual slider */
-const manualSlider = document.getElementById("manualSlider");
-const manualVal = document.getElementById("manualVal");
-manualSlider.oninput = ()=>{
-  if(mode !== "manual") return;
-  duty = parseInt(manualSlider.value);
-  manualVal.textContent = duty;
+setInterval(() => {
+  freqDisplay.textContent = "Target: " + targetFreq.toFixed(2) + " Hz";
+  sendFreq(targetFreq);
+}, 200);
+
+document.getElementById("stopBtn").onclick = () => {
+  targetFreq = 0;
+  slider.value = 0;
+  valBox.textContent = "0.00";
+  sendFreq(0);
 };
 
-/* Auto sliders */
-const maxSlider = document.getElementById("maxSlider");
-const maxVal = document.getElementById("maxVal");
-maxSlider.oninput = ()=>{ maxVal.textContent = maxSlider.value; };
-
-const stepSlider = document.getElementById("stepSlider");
-const stepVal = document.getElementById("stepVal");
-stepSlider.oninput = ()=>{ stepVal.textContent = stepSlider.value; };
-
-/* Start ramp */
-document.getElementById("startRamp").onclick = ()=>{
-  if(mode !== "auto") return;
-  duty = 0;
-  clearInterval(rampInterval);
-  rampInterval = setInterval(()=>{
-    duty += parseInt(stepSlider.value);
-    if(duty >= parseInt(maxSlider.value)){
-      duty = parseInt(maxSlider.value);
-      clearInterval(rampInterval);
+async function startReadLoop() {
+  if (readLoopActive) return;
+  readLoopActive = true;
+  const decoder = new TextDecoder();
+  let buffer = "";
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let lines = buffer.split("\n");
+      buffer = lines.pop();
+      for (let line of lines) {
+        line = line.trim();
+        if (line.startsWith("M:")) {
+          const val = parseFloat(line.substring(2));
+          measuredDisplay.textContent = "Measured: " + val.toFixed(2) + " Hz";
+        }
+      }
     }
-  }, 100);
-};
-
-/* Stop ramp */
-document.getElementById("stopRamp").onclick = ()=>{
-  if(mode !== "auto") return;
-  clearInterval(rampInterval);
-  duty = 0;
-};
-
-/* Live updates + failsafe heartbeat */
-const dutyDisplay = document.getElementById("currentDutyDisplay");
-setInterval(()=>{
-  dutyDisplay.textContent = duty + "%";
-  sendDuty(duty);
-}, 100);
+  } catch (e) {
+    console.error(e);
+  }
+}
 </script>
-
 </body>
 </html>
