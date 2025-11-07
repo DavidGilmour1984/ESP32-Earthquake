@@ -15,10 +15,14 @@ body {
   background: #ffffff;
   padding: 30px;
   width: 480px;
-  margin: auto;
   border-radius: 18px;
   box-shadow: 0 5px 18px rgba(0,0,0,0.18);
+  display: flex;
+  flex-direction: column;
+  height: 520px;          /* <---- All cards now same height */
+  box-sizing: border-box;
 }
+
 h2 {
   margin-top: 0;
   font-size: 32px;
@@ -60,17 +64,39 @@ button:hover { background: #1e40af; }
 </head>
 
 <body>
-<div class="card">
-  <h2>ESP32 Motor Frequency Control</h2>
-  <button id="connectBtn">Connect</button>
+<div style="display:flex; gap:20px; justify-content:center; flex-wrap:wrap;">
 
-  <div id="freqDisplay">Target: 0.00 Hz</div>
-  <div id="measuredDisplay">Measured: 0.00 Hz</div>
+  <!-- ===== CONTROL CARD ===== -->
+  <div class="card">
+    <h2>ESP32 Motor Frequency Control</h2>
+    <button id="connectBtn">Connect</button>
 
-  <input type="range" id="freqSlider" class="slider" min="0" max="2" step="0.01" value="0">
-  <div class="valueBox"><span id="freqVal">0.00</span> Hz</div>
+    <div id="freqDisplay">Target: 0.00 Hz</div>
+    <div id="measuredDisplay">Measured: 0.00 Hz</div>
 
-  <button id="stopBtn" style="background:#d90429;">Stop</button>
+    <input type="range" id="freqSlider" class="slider" min="0" max="2" step="0.01" value="0">
+    <div class="valueBox"><span id="freqVal">0.00</span> Hz</div>
+
+    <button id="stopBtn" style="background:#d90429;">Stop</button>
+  </div>
+
+  <!-- ===== Earthquake Comparison Card ===== -->
+  <div class="card">
+    <h2>Earthquake Similarity</h2>
+    <div id="quakeList" style="text-align:left; font-size:22px; line-height:1.6; margin-left:20px;"></div>
+  </div>
+
+  <!-- ===== Peak Motion Values Card ===== -->
+  <div class="card">
+    <h2>Shaker Peak Motion</h2>
+    <div style="font-size:22px; text-align:left; margin-left:20px; line-height:1.5;">
+      <div>Peak Displacement: <span id="dispVal">0</span> mm</div>
+      <div>Peak Velocity: <span id="velVal">0</span> cm/s</div>
+      <div>Peak Acceleration: <span id="accVal">0</span> m/s²</div>
+      <div>Peak Force: <span id="gVal">0</span> g</div>
+    </div>
+  </div>
+
 </div>
 
 <script>
@@ -99,6 +125,45 @@ const measuredDisplay = document.getElementById("measuredDisplay");
 slider.oninput = () => {
   targetFreq = parseFloat(slider.value);
   valBox.textContent = targetFreq.toFixed(2);
+
+  // --- Peak motion calculations (A = 25 mm = 0.025 m) ---
+  const A = 0.025;
+  const f = targetFreq;
+  const V = A * 2 * Math.PI * f;
+  const a = A * Math.pow(2 * Math.PI * f, 2);
+  const g = a / 9.80665;
+
+  document.getElementById("dispVal").textContent = "25.0";
+  document.getElementById("velVal").textContent = (V * 100).toFixed(2);
+  document.getElementById("accVal").textContent = a.toFixed(3);
+  document.getElementById("gVal").textContent   = g.toFixed(3);
+
+  const quakes = [
+    { name: "Northridge 1994 (US)",  f: 2.0, M: 6.7 },
+    { name: "Kobe 1995 (JP)",        f: 1.4, M: 6.9 },
+    { name: "Izmit 1999 (TR)",       f: 1.2, M: 7.6 },
+    { name: "Christchurch 2011 (NZ)",f: 1.0, M: 6.2 },
+    { name: "Tohoku 2011 (JP)",      f: 0.8, M: 9.1 },
+    { name: "Gorkha 2015 (NP)",      f: 0.6, M: 7.8 },
+    { name: "Loma Prieta 1989 (US)", f: 0.5, M: 6.9 },
+    { name: "Chile 2010 (CL)",       f: 0.3, M: 8.8 },
+    { name: "Kaikoura 2016 (NZ)",    f: 0.2, M: 7.8 },
+    { name: "Canterbury 2010 (NZ)",  f: 0.1, M: 7.1 }
+  ];
+
+  let html = "";
+  quakes.forEach(q => {
+    let diff = Math.abs(q.f - f);
+    let strong = diff < 0.15 ? "font-weight:700; color:#2563eb;" : "opacity:0.4;";
+    html += `<div style="${strong}">
+        ${q.name}
+        <span style="float:right;opacity:0.8;">M${q.M} &nbsp; ${q.f.toFixed(1)} Hz</span>
+    </div>`;
+  });
+
+  document.getElementById("quakeList").innerHTML = html;
+
+  
 };
 
 setInterval(() => {
