@@ -1,8 +1,8 @@
 #include <Arduino.h>
 #include "driver/ledc.h"
 
-#define PWM_PIN      15
-#define PHOTO_PIN    14
+#define PWM_PIN      18
+#define PHOTO_PIN    34
 #define LED_PIN      2
 
 #define PWM_CHANNEL  LEDC_CHANNEL_0
