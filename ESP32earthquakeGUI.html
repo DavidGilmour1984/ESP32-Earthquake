@@ -2,7 +2,11 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>ESP32 Motor Frequency Control</title>
+<title>Earthquake Machine Control</title>
+
+<link rel="icon" type="image/png" 
+      href="https://cdn-icons-png.flaticon.com/512/4829/4829035.png">
+
 <style>
 body {
   font-family: Helvetica, Arial, sans-serif;
@@ -37,77 +41,72 @@ button {
   color: white;
   cursor: pointer;
 }
-button:hover { background: #1e40af; }
+button:hover { background:#1e40af; }
 .slider {
-  width: 100%;
-  height: 35px;
-  margin-top: 8px;
+  width:100%;
+  height:35px;
+  margin-top:8px;
 }
 .valueBox {
-  font-size: 28px;
-  margin-top: 6px;
-  font-weight: 600;
+  font-size:28px;
+  margin-top:6px;
+  font-weight:600;
 }
 #freqDisplay {
-  font-size: 48px;
-  font-weight: 700;
-  color: #2563eb;
-  margin: 10px 0 10px 0;
+  font-size:48px;
+  font-weight:700;
+  color:#2563eb;
+  margin:10px 0 10px 0;
 }
 #measuredDisplay {
-  font-size: 26px;
-  color: #1e3a8a;
-  margin-top: 5px;
+  font-size:26px;
+  color:#1e3a8a;
+  margin-top:5px;
 }
 
-/* Toggle slider */
+/* Toggle */
 .switch {
-  position: relative;
-  display: inline-block;
-  width: 60px;
-  height: 32px;
+  position:relative;
+  display:inline-block;
+  width:60px;
+  height:32px;
 }
-.switch input { opacity: 0; width: 0; height: 0; }
+.switch input { opacity:0;width:0;height:0; }
 .sliderSwitch {
-  position: absolute;
-  cursor: pointer;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background-color: #ccc;
-  transition: .3s;
-  border-radius: 32px;
+  position:absolute;
+  cursor:pointer;
+  top:0;left:0;right:0;bottom:0;
+  background-color:#ccc;
+  transition:.3s;
+  border-radius:32px;
 }
 .sliderSwitch:before {
-  position: absolute;
-  content: "";
-  height: 26px;
-  width: 26px;
-  left: 3px;
-  bottom: 3px;
-  background-color: white;
-  transition: .3s;
-  border-radius: 50%;
+  position:absolute;
+  content:"";
+  height:26px;
+  width:26px;
+  left:3px;
+  bottom:3px;
+  background:white;
+  transition:.3s;
+  border-radius:50%;
 }
-input:checked + .sliderSwitch {
-  background-color: #2563eb;
-}
-input:checked + .sliderSwitch:before {
-  transform: translateX(28px);
-}
+input:checked + .sliderSwitch { background:#2563eb; }
+input:checked + .sliderSwitch:before { transform:translateX(28px); }
 </style>
 </head>
 
 <body>
-<div style="display:flex; gap:20px; justify-content:center; flex-wrap:wrap;">
+<div style="display:flex;gap:20px;justify-content:center;flex-wrap:wrap;">
 
   <div class="card">
-    <h2>ESP32 Motor Frequency Control</h2>
+    <h2>Earthquake Machine Control</h2>
     <button id="connectBtn">Connect</button>
 
-    <!-- MODE SWITCH -->
-    <div style="margin:12px 0; display:flex; justify-content:center; align-items:center; gap:12px;">
+    <div style="margin:12px 0;display:flex;justify-content:center;align-items:center;gap:12px;">
       <span style="font-size:20px;font-weight:600;">Fixed</span>
       <label class="switch">
-        <input type="checkbox" id="modeSwitch">
+        <input type="checkbox" id="modeSwitch" checked>
         <span class="sliderSwitch"></span>
       </label>
       <span style="font-size:20px;font-weight:600;">Ramp</span>
@@ -116,143 +115,154 @@ input:checked + .sliderSwitch:before {
     <div id="freqDisplay">Target: 0.00 Hz</div>
     <div id="measuredDisplay">Measured: 0.00 Hz</div>
 
-    <!-- FIXED FREQ -->
-    <div id="fixedControl">
+    <div id="fixedControl" style="display:none;">
       <input type="range" id="freqSlider" class="slider" min="0" max="2" step="0.01" value="0">
       <div class="valueBox"><span id="freqVal">0.00</span> Hz</div>
     </div>
 
-    <!-- RAMP RATE -->
-    <div id="rampControl" style="display:none;">
-      <input type="range" id="rampSlider" class="slider" min="0.01" max="0.1" step="0.01" value="0.05">
-      <div class="valueBox"><span id="rampVal">0.05</span> Hz/s</div>
+    <div id="rampControl" style="display:block;">
+      <input type="range" id="rampSlider" class="slider" min="0.01" max="0.100" step="0.01" value="0.02">
+      <div class="valueBox"><span id="rampVal">0.02</span> Hz/s</div>
     </div>
 
     <button id="startBtn" style="background:#16a34a;">Start</button>
-    <button id="stopBtn" style="background:#d90429;">Stop</button>
+    <button id="stopBtn"  style="background:#d90429;">Stop</button>
   </div>
 
   <div class="card">
     <h2>Earthquake Similarity</h2>
-    <div id="quakeList" style="text-align:left; font-size:22px; line-height:1.6; margin-left:20px;"></div>
+    <div id="quakeList" style="text-align:left;font-size:22px;line-height:1.6;margin-left:20px;"></div>
   </div>
 
-<div class="card">
-  <h2>Shaker Peak Motion</h2>
-  <div style="font-size:22px; text-align:left; margin-left:20px; line-height:1.5;">
-    <div>Peak Displacement: <span id="dispVal">0</span> mm</div>
-    <div>Peak Velocity: <span id="velVal">0</span> cm/s</div>
-    <div>Peak Acceleration: <span id="accVal">0</span> m/s²</div>
-    <div>Peak Force: <span id="gVal">0</span> g</div>
-    <div>Time since start: <span id="quakeTime">0.0</span> s</div>
+  <div class="card">
+    <h2>Shaker Peak Motion</h2>
+    <div style="font-size:22px;text-align:left;margin-left:20px;line-height:1.5;">
+      <div>Peak Displacement: <span id="dispVal">0</span> mm</div>
+      <div>Peak Velocity: <span id="velVal">0</span> cm/s</div>
+      <div>Peak Acceleration: <span id="accVal">0</span> m/s²</div>
+      <div>Peak Force: <span id="gVal">0</span> g</div>
+      <div>Time since start: <span id="quakeTime">0.0</span> s</div>
+    </div>
   </div>
-</div>
-
 
 </div>
 
 <script>
 let port, writer, reader;
 let targetFreq = 0;
-let rampRate = 0.05;
+let rampRate = 0.02;
 let rampRunning = false;
 let systemRunning = false;
 let readLoopActive = false;
 
 async function sendFreq(f) {
-  if (!writer || !systemRunning) return;
+  if (!writer) return;
   await writer.write(new TextEncoder().encode(f.toFixed(2) + "\n"));
 }
 
-document.getElementById("connectBtn").onclick = async () => {
+// HARD STOP override
+async function sendHardStop() {
+  if (!writer) return;
+  await writer.write(new TextEncoder().encode("STOP!\n"));
+}
+
+document.getElementById("connectBtn").onclick = async()=>{
   port = await navigator.serial.requestPort();
-  await port.open({ baudRate: 9600 });
+  await port.open({baudRate:9600});
   writer = port.writable.getWriter();
   reader = port.readable.getReader();
   startReadLoop();
 };
 
-const modeSwitch  = document.getElementById("modeSwitch");
-const freqSlider  = document.getElementById("freqSlider");
-const rampSlider  = document.getElementById("rampSlider");
+const modeSwitch   = document.getElementById("modeSwitch");
+const freqSlider   = document.getElementById("freqSlider");
+const rampSlider   = document.getElementById("rampSlider");
 const fixedControl = document.getElementById("fixedControl");
-const rampControl = document.getElementById("rampControl");
+const rampControl  = document.getElementById("rampControl");
 
-freqSlider.oninput = () => {
+freqSlider.oninput = ()=>{
   targetFreq = parseFloat(freqSlider.value);
   document.getElementById("freqVal").textContent = targetFreq.toFixed(2);
   updateMotion(targetFreq);
 };
-rampSlider.oninput = () => {
+
+rampSlider.oninput = ()=>{
   rampRate = parseFloat(rampSlider.value);
   document.getElementById("rampVal").textContent = rampRate.toFixed(2);
 };
 
-modeSwitch.onchange = () => {
+modeSwitch.onchange = ()=>{
   fixedControl.style.display = modeSwitch.checked ? "none" : "block";
   rampControl.style.display  = modeSwitch.checked ? "block" : "none";
 };
 
 let quakeStartTime = 0;
-let quakeTimerInterval;
+let quakeTimer;
 
-document.getElementById("startBtn").onclick = () => {
+document.getElementById("startBtn").onclick = ()=>{
   systemRunning = true;
+  rampRunning = false;
   quakeStartTime = Date.now();
 
-  if (quakeTimerInterval) clearInterval(quakeTimerInterval);
-  quakeTimerInterval = setInterval(() => {
-    const elapsed = (Date.now() - quakeStartTime) / 1000;
-    document.getElementById("quakeTime").textContent = elapsed.toFixed(1);
-  }, 100);
+  if(quakeTimer) clearInterval(quakeTimer);
+  quakeTimer = setInterval(()=>{
+    const t = (Date.now() - quakeStartTime) / 1000;
+    document.getElementById("quakeTime").textContent = t.toFixed(1);
+  },100);
 
-  if (modeSwitch.checked) {
+  if(modeSwitch.checked){
     startRamp();
   } else {
     updateMotion(targetFreq);
   }
 };
 
-document.getElementById("stopBtn").onclick = () => {
+document.getElementById("stopBtn").onclick = async ()=>{
   systemRunning = false;
   rampRunning = false;
   targetFreq = 0;
 
-  clearInterval(quakeTimerInterval);
+  // HARD OVERRIDE STOP
+  await sendHardStop();
+
+  // GUI update only — no sendFreq()
+  document.getElementById("freqDisplay").textContent = "Target: 0.00 Hz";
+  document.getElementById("measuredDisplay").textContent = "Measured: 0.00 Hz";
+
+  clearInterval(quakeTimer);
   document.getElementById("quakeTime").textContent = "0.0";
-
-  sendFreq(0);
-  updateMotion(0);
 };
-
 
 function startRamp(){
   rampRunning = true;
-  targetFreq = 0.3;
+  targetFreq = 0.30;
   updateMotion(targetFreq);
   rampLoop();
 }
 
 async function rampLoop(){
-  while (rampRunning && systemRunning){
-    await new Promise(r => setTimeout(r, 200));
+  while(rampRunning && systemRunning){
+    await new Promise(r=>setTimeout(r,200));
     targetFreq += rampRate * 0.2;
-    if (targetFreq > 2) targetFreq = 2;
+    if(targetFreq > 3.3) targetFreq = 3.3;
     updateMotion(targetFreq);
   }
 }
 
 function updateMotion(f){
+  if (!systemRunning) return;
+
   const A = 0.025;
   const V = A * 2 * Math.PI * f;
-  const a = A * Math.pow(2 * Math.PI * f, 2);
+  const a = A * Math.pow(2 * Math.PI * f,2);
   const g = a / 9.80665;
 
   document.getElementById("dispVal").textContent = "25.0";
-  document.getElementById("velVal").textContent = (V * 100).toFixed(2);
+  document.getElementById("velVal").textContent = (V*100).toFixed(2);
   document.getElementById("accVal").textContent = a.toFixed(3);
-  document.getElementById("gVal").textContent = g.toFixed(3);
-  document.getElementById("freqDisplay").textContent = "Target: " + f.toFixed(2) + " Hz";
+  document.getElementById("gVal").textContent  = g.toFixed(3);
+  document.getElementById("freqDisplay").textContent =
+      "Target: " + f.toFixed(2) + " Hz";
 
   updateQuakes(f);
   sendFreq(f);
@@ -260,37 +270,43 @@ function updateMotion(f){
 
 function updateQuakes(f){
   const quakes = [
-    { name: "Northridge 1994 (US)",  f: 2.0, M: 6.7 },
-    { name: "Kobe 1995 (JP)",        f: 1.4, M: 6.9 },
-    { name: "Izmit 1999 (TR)",       f: 1.2, M: 7.6 },
-    { name: "Christchurch 2011 (NZ)",f: 1.0, M: 6.2 },
-    { name: "Tohoku 2011 (JP)",      f: 0.8, M: 9.1 },
-    { name: "Gorkha 2015 (NP)",      f: 0.6, M: 7.8 },
-    { name: "Loma Prieta 1989 (US)", f: 0.5, M: 6.9 },
-    { name: "Chile 2010 (CL)",       f: 0.3, M: 8.8 },
-    { name: "Kaikoura 2016 (NZ)",    f: 0.2, M: 7.8 },
-    { name: "Canterbury 2010 (NZ)",  f: 0.1, M: 7.1 }
+    {name:"Parkfield 2004 (US)",        f:2.4, M:6.0},
+    {name:"Pisco Aftershock 2007 (PE)", f:2.3, M:5.8},
+    {name:"Edgecumbe 1987 (NZ)",        f:2.2, M:6.5},
+    {name:"Darfield Aftershock 2010 (NZ)", f:2.2, M:5.9},
+    {name:"Niigata 2004 (JP)",          f:2.1, M:6.6},
+    {name:"Northridge 1994 (US)",       f:2.0, M:6.7},
+    {name:"Petrolia 1992 (US)",         f:2.0, M:6.9},
+    {name:"Kobe 1995 (JP)",             f:1.4, M:6.9},
+    {name:"Izmit 1999 (TR)",            f:1.2, M:7.6},
+    {name:"Christchurch 2011 (NZ)",     f:1.0, M:6.2},
+    {name:"Tohoku 2011 (JP)",           f:0.8, M:9.1},
+    {name:"Gorkha 2015 (NP)",           f:0.6, M:7.8},
+    {name:"Loma Prieta 1989 (US)",      f:0.5, M:6.9},
+    {name:"Chile 2010 (CL)",            f:0.3, M:8.8},
+    {name:"Kaikoura 2016 (NZ)",         f:0.2, M:7.8},
+    {name:"Canterbury 2010 (NZ)",       f:0.1, M:7.1},
   ];
 
   let html = "";
-  quakes.forEach(q => {
-    let diff = Math.abs(q.f - f);
-    let style = diff < 0.15 ? "font-weight:700;color:#2563eb;" : "opacity:0.4;";
+  quakes.forEach(q=>{
+    let style = Math.abs(q.f - f) < 0.15 ?
+      "font-weight:700;color:#2563eb;" : "opacity:0.4;";
     html += `<div style="${style}">
-        ${q.name}
-        <span style="float:right;">M${q.M}  ${q.f.toFixed(1)}Hz</span>
+      ${q.name}
+      <span style="float:right;">M${q.M} ${q.f.toFixed(1)}Hz</span>
     </div>`;
   });
   document.getElementById("quakeList").innerHTML = html;
 }
 
 async function startReadLoop(){
-  if (readLoopActive) return;
+  if(readLoopActive) return;
   readLoopActive = true;
   let decoder = new TextDecoder();
   let buffer = "";
 
-  while (true) {
+  while(true){
     const {value, done} = await reader.read();
     if(done) break;
     buffer += decoder.decode(value);
@@ -298,7 +314,8 @@ async function startReadLoop(){
     buffer = lines.pop();
     for(let line of lines){
       if(line.startsWith("M:")){
-        document.getElementById("measuredDisplay").textContent = "Measured: " + parseFloat(line.substring(2)).toFixed(2) + " Hz";
+        document.getElementById("measuredDisplay")
+          .textContent = "Measured: " + parseFloat(line.substring(2)).toFixed(2) + " Hz";
       }
     }
   }
