@@ -88,10 +88,7 @@ void controlTask(void *parameter) {
       continue;
     }
 
-    // 3-second timeout (your ramp smoothing behaviour)
-    if (millis() - lastUpdate > 3000) {
-      targetHz = 0;
-    }
+
 
     // ----- MEASUREMENT WINDOW: 200 ms -----
     if (millis() - lastMeasure >= 200) {
