@@ -116,7 +116,7 @@ input:checked + .sliderSwitch:before { transform:translateX(28px); }
     <div id="measuredDisplay">Measured: 0.00 Hz</div>
 
     <div id="fixedControl" style="display:none;">
-      <input type="range" id="freqSlider" class="slider" min="0" max="2" step="0.01" value="0">
+<input type="range" id="freqSlider" class="slider" min="0" max="3.5" step="0.01" value="0">
       <div class="valueBox"><span id="freqVal">0.00</span> Hz</div>
     </div>
 
@@ -244,7 +244,7 @@ async function rampLoop(){
   while(rampRunning && systemRunning){
     await new Promise(r=>setTimeout(r,200));
     targetFreq += rampRate * 0.2;
-    if(targetFreq > 3.3) targetFreq = 3.3;
+    if(targetFreq > 3.5) targetFreq = 3.5;
     updateMotion(targetFreq);
   }
 }
